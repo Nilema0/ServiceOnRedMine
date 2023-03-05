@@ -12,4 +12,11 @@ public class RequestCreatorUtil {
                 .GET()
                 .build();
     }
+
+    public static HttpRequest getRedMineProjectsRequest() throws URISyntaxException {
+        return HttpRequest.newBuilder()
+                .uri(new URI("http://localhost:8080/projects.xml"))
+                .GET()
+                .build();
+    }
 }

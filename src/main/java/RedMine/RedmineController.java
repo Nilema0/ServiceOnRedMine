@@ -16,4 +16,17 @@ public class RedmineController {
     String getIssues() throws URISyntaxException, IOException, InterruptedException {
         return service.getIssues();
     }
+
+    @GetMapping("/projects")
+    String getProjects() throws URISyntaxException, IOException, InterruptedException {
+        return service.getProjects();
+    }
+
+    /*
+    @PostMapping("/projects")
+    String postProjects(@RequestBody PostProjectRequest postProjectRequest){
+        service.postProject(postProjectRequest);
+        return "ok";
+    }*/
+
 }
