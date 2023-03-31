@@ -1,32 +1,21 @@
 package RedMine;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
+import RedMine.bean.Issues;
+import RedMine.request.IssueRequest;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class RedmineController {
-    @Autowired
-    RedmineService service;
+    RedmineService service = new RedmineService();
 
-    @GetMapping("/issues")
-    String getIssues() throws URISyntaxException, IOException, InterruptedException {
-        return service.getIssues();
+    @GetMapping("/issues/{id}")
+    Issues getIssues(@PathVariable int id) {
+        return service.getIssues(id);
     }
 
-    @GetMapping("/projects")
-    String getProjects() throws URISyntaxException, IOException, InterruptedException {
-        return service.getProjects();
+    @PostMapping("/issues")
+    String postIssue(@RequestBody IssueRequest dataForIssue) {
+        service.postIssue(dataForIssue);
+        return ("Задача создана, её параметры: " + dataForIssue.toString());
     }
-
-    /*
-    @PostMapping("/projects")
-    String postProjects(@RequestBody PostProjectRequest postProjectRequest){
-        service.postProject(postProjectRequest);
-        return "ok";
-    }*/
-
 }

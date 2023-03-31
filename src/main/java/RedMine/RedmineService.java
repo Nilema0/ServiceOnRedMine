@@ -1,31 +1,37 @@
 package RedMine;
 
+import RedMine.bean.Issues;
+import RedMine.request.IssueRequest;
+import lombok.AllArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpResponse.BodyHandlers;
-
-import static RedMine.RequestCreatorUtil.getRedMineIssuesRequest;
-import static RedMine.RequestCreatorUtil.getRedMineProjectsRequest;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Service
+@AllArgsConstructor
 public class RedmineService {
-    HttpClient httpClient = HttpClient.newHttpClient();
-    PostProjectRequest postProjectRequest;
 
-    public String getIssues() throws URISyntaxException, IOException, InterruptedException {
-        return httpClient.send(
-                getRedMineIssuesRequest(),
-                BodyHandlers.ofString())
-                .body();
+    private final WebClient client = WebClient.create("http://localhost:3000");
+
+    public Issues getIssues(int id) {
+        return client.get()
+                .uri("/issues.json?assigned_to_id=" + id)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(Issues.class)
+                .block();
     }
 
-    public String getProjects() throws URISyntaxException, IOException, InterruptedException {
-        return httpClient.send(
-                getRedMineProjectsRequest(),
-                BodyHandlers.ofString())
-                .body();
+    public void postIssue(IssueRequest data) {
+        client.post()
+                .uri("/issues.json")
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Basic YWRtaW46YWRtaW5hZG1pbg==")
+                .body(Mono.just(data), IssueRequest.class)
+                .retrieve()
+                .bodyToMono(Issues.class)
+                .block();
     }
 }
