@@ -1,15 +1,15 @@
 package RedMine;
 
 import RedMine.bean.Issues;
-import RedMine.request.IssueRequest;
-import lombok.AllArgsConstructor;
+import RedMine.bean.request.IssueRequest;
+import lombok.NoArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Service
-@AllArgsConstructor
+@NoArgsConstructor
 public class RedmineService {
 
     private final WebClient client = WebClient.create("http://localhost:3000");
