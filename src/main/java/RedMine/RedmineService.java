@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import static RedMine.RequestValidator.*;
 @Service
 @NoArgsConstructor
 public class RedmineService {
@@ -24,6 +25,7 @@ public class RedmineService {
     }
 
     public void postIssue(IssueRequest data) {
+        validateOrderRequest(data);
         client.post()
                 .uri("/issues.json")
                 .accept(MediaType.APPLICATION_JSON)
