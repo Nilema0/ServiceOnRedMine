@@ -1,6 +1,7 @@
-package RedMine;
+package redmine.util;
 
-import RedMine.bean.request.IssueRequest;
+import redmine.ValidationFailedException;
+import redmine.bean.request.IssueRequest;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -9,7 +10,7 @@ import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
 
 @UtilityClass
-public class RequestValidator {
+public class RequestValidatorUtil {
     private final Validator validator;
     static {
         try(ValidatorFactory factory = Validation.buildDefaultValidatorFactory()){
@@ -19,12 +20,12 @@ public class RequestValidator {
     public void validateOrderRequest(final IssueRequest issueRequest) {
         val violations = validator.validate(issueRequest);
         if (violations.size() > 0) {
-            StringBuilder mistake = new StringBuilder();
+            StringBuilder exceptionHolder = new StringBuilder();
             for (val violation : violations) {
-                mistake.append(violation.getMessage());
-                mistake.append("\n");
+                exceptionHolder.append(violation.getMessage());
+                exceptionHolder.append("\n");
             }
-            throw new ValidationFailedException(mistake.toString());
+            throw new ValidationFailedException(exceptionHolder.toString());
         }
     }
 }

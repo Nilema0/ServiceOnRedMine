@@ -1,6 +1,6 @@
-package RedMine;
+package redmine;
 
-public class ValidationFailedException extends RuntimeException{
+public class ValidationFailedException extends RuntimeException {
     public ValidationFailedException(String message) {
         super(message);
     }
