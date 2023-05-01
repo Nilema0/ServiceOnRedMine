@@ -70,6 +70,6 @@ public class Issues {
     @NoArgsConstructor
     public static class Custom {
         private int id;
-        private int value;
+        private String value;
     }
 }

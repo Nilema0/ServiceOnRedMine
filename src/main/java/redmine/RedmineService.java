@@ -1,12 +1,16 @@
 package redmine;
 
+import io.netty.handler.logging.LogLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.transport.logging.AdvancedByteBufFormat;
 import redmine.bean.*;
 import redmine.bean.request.IssueRequest;
 import redmine.bean.request.IssueRequestToGet;
@@ -14,6 +18,8 @@ import redmine.util.ParserCsv;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import static redmine.util.RequestValidatorUtil.validateOrderRequest;
@@ -24,7 +30,16 @@ import static redmine.util.StringHolderUtil.*;
 @NoArgsConstructor
 @Slf4j
 public class RedmineService {
-    private final WebClient client = WebClient.create(REDMINE_URL);
+    //    private final WebClient client = WebClient.create(REDMINE_URL);
+    private final WebClient client = WebClient
+            .builder()
+            .baseUrl(REDMINE_URL)
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
+            .build();
+    private final static HttpClient httpClient = HttpClient
+            .create()
+            .wiretap("reactor.netty.http.client.HttpClient",
+                    LogLevel.INFO, AdvancedByteBufFormat.TEXTUAL);
 
     public void createIssue(final IssueRequest data) {
         validateOrderRequest(data);
@@ -53,7 +68,7 @@ public class RedmineService {
         if (!checkStatuses(issue.getStatusId(), getStatuses())) {
             message.append(String.format("Нет статуса с  id %d.", issue.getStatusId()));
         }
-        if (!checkUsers(issue.getAssignedTo(), getUsers())) {
+        if (!checkUsers(issue.getAssignedTo(), getUsers()) && issue.getAssignedTo() != 0) {
             message.append(String.format("Нет пользователя с таким id %d.", issue.getAssignedTo()));
         }
         if (!checkPriorities(issue.getPriorityId(), getPriorities())) {
@@ -122,8 +137,27 @@ public class RedmineService {
             sentData.add(getIdByName(datum, getProjects(), getStatuses(), getTrackers(),
                     getUsers(), getPriorities()));
         }
-        sentData.forEach(this::createIssue);
+        //sentData.forEach(this::createIssue);
+
+        for (IssueRequest sentDatum : sentData) {
+            String nameOfIssue = sentDatum.getIssue().getSubject();
+            sentDatum.getIssue().setSubject(nameOfIssue + "(1)");
+            createIssue(sentDatum);
+            for (int i = 1; i < sentDatum.getIssue().getNumber(); i++) {
+                sentDatum.getIssue().setSubject(nameOfIssue + "(" + (i + 1) + ")");
+                sentDatum.getIssue().setStartDate(editDate
+                        (sentDatum.getIssue().getStartDate(),
+                                sentDatum.getIssue().getCustomList().get(1).getValue(),
+                                Integer.parseInt(sentDatum.getIssue().getCustomList().get(0).getValue())));
+                sentDatum.getIssue().setEndDate(editDate
+                        (sentDatum.getIssue().getEndDate(),
+                                sentDatum.getIssue().getCustomList().get(1).getValue(),
+                                Integer.parseInt(sentDatum.getIssue().getCustomList().get(0).getValue())));
+                createIssue(sentDatum);
+            }
+        }
     }
+
     public IssueRequest getIdByName(IssueRequestToGet data, Projects projects, Statuses statuses,
                                     Trackers trackers, Users users, Priorities priorities) {
         IssueRequest dataForPost = new IssueRequest();
@@ -141,25 +175,70 @@ public class RedmineService {
             if (issue.getTrackerName().equalsIgnoreCase(tr.getName()))
                 issueToPost.setTrackerId(tr.getId());
         }
-        for(val us : users.getUserList()){
-            StringBuilder name = new StringBuilder();
-            name.append(us.getFirstName())
-                    .append(" ")
-                    .append(us.getLastName());
-            if(issue.getAssigned().equalsIgnoreCase(name.toString()))
-                issueToPost.setAssignedTo(us.getId());
+        if (issue.getAssigned().equals(""))
+            issueToPost.setAssignedTo(1);
+        else {
+            for (val us : users.getUserList()) {
+                StringBuilder name = new StringBuilder();
+                name.append(us.getFirstName())
+                        .append(" ")
+                        .append(us.getLastName());
+                if (issue.getAssigned().equalsIgnoreCase(name.toString()))
+                    issueToPost.setAssignedTo(us.getId());
+            }
         }
-        for(val pr : priorities.getPriorities()){
-            if(issue.getPriorityName().equalsIgnoreCase(pr.getName()))
+        for (val pr : priorities.getPriorities()) {
+            if (issue.getPriorityName().equalsIgnoreCase(pr.getName()))
                 issueToPost.setPriorityId(pr.getId());
         }
+
+
+        issueToPost.getCustomList().add(new IssueRequest.IssueMiniRequest.customFields(
+                6, data.getIssue().getCustomList().get(1).getValue()));
+        issueToPost.getCustomList().add(new IssueRequest.IssueMiniRequest.customFields(
+                4, data.getIssue().getCustomList().get(0).getValue()));
+
         issueToPost.setStartDate(issue.getStartDate());
         issueToPost.setEndDate(issue.getEndDate());
         issueToPost.setSubject(issue.getSubject());
-
-        issueToPost.getCustomList().add(new IssueRequest.IssueMiniRequest.customFields(6,"1"));
-        issueToPost.getCustomList().add(new IssueRequest.IssueMiniRequest.customFields(4,"week"));
+        issueToPost.setNumber(issue.getNumber());
 
         return dataForPost;
+    }
+
+    public String editDate(String date, String type, int value) {
+        Calendar calendar = new GregorianCalendar();
+        int year = Integer.parseInt(date.substring(0, 4));
+        int month = Integer.parseInt(date.substring(5, 7)) - 1;
+        int day = Integer.parseInt(date.substring(8));
+        calendar.set(year, month, day);
+        switch (type) {
+            case "year":
+                calendar.add(Calendar.YEAR, value);
+                break;
+            case "month":
+                calendar.add(Calendar.MONTH, value);
+                break;
+            case "week":
+                calendar.add(Calendar.DAY_OF_MONTH, 7 * value);
+                break;
+            case "day":
+                calendar.add(Calendar.DAY_OF_MONTH, value);
+                break;
+            case "hour":
+                calendar.add(Calendar.HOUR, value);
+                break;
+        }
+        StringBuilder dateEdited = new StringBuilder();
+        dateEdited.append(calendar.get(Calendar.YEAR));
+        dateEdited.append("-");
+        if (calendar.get(Calendar.MONTH) < 10)
+            dateEdited.append("0");
+        dateEdited.append(calendar.get(Calendar.MONTH) + 1);
+        dateEdited.append("-");
+        if (calendar.get(Calendar.DAY_OF_MONTH) < 10)
+            dateEdited.append("0");
+        dateEdited.append(calendar.get(Calendar.DAY_OF_MONTH));
+        return dateEdited.toString();
     }
 }

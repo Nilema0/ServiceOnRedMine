@@ -53,5 +53,6 @@ public class IssueRequestToGet {
             private int id;
             private String value;
         }
+        int number;
     }
 }

@@ -46,5 +46,7 @@ public class IssueRequest {
             private  int id;
             private String value;
         }
+        @JsonProperty("number_of_issue")
+        int number;
     }
 }

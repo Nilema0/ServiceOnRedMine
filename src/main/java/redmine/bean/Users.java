@@ -20,7 +20,7 @@ public class Users {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class User {
-        private int id;
+        private Integer id;
         @JsonProperty("firstname")
         private String firstName;
         @JsonProperty("lastname")

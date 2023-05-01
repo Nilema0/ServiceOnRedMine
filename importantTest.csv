@@ -1,2 +1,4 @@
-project,tracker,status,priority,subject,assigned_to,type_of_periodicity,the_value_of_periodicity,start_date,end_date
-TestProject,new,new,hige,new task 3,Milena Krasnyx,week,2,2023-04-25,2023-05-07
+project,tracker,status,priority,subject,assigned_to,type_of_periodicity,the_value_of_periodicity,start_date,end_date,number_of_issue
+TestProject,new,new,above normal,wipe off the dust,"",week,1,2023-04-29,2023-04-30,3
+TestProject,new,new,above normal,wash the curtains,"",month,1,2023-04-30,2023-05-01,3
+TestProject,new,new,above normal,water the flowers,"",day,4,2023-05-01,2023-05-01,3

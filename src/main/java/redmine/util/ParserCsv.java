@@ -23,12 +23,12 @@ public class ParserCsv {
                     .parse(reader)
                     .getRecords()
                     .stream()
-                    .map(ParserCsv::translate)
+                    .map(ParserCsv::reader)
                     .collect(Collectors.toList());
         }
     }
 
-    private static IssueRequestToGet translate(final CSVRecord data) {
+    private static IssueRequestToGet reader(final CSVRecord data) {
         return IssueRequestToGet.builder()
                 .issue(IssueRequestToGet.IssueMiniRequestToGet.builder()
                         .projectName(data.get(0))
@@ -39,14 +39,15 @@ public class ParserCsv {
                         .assigned(data.get(5))
                         .customList(List.of(
                                 IssueRequestToGet.IssueMiniRequestToGet.CustomFields.builder()
-                                        .value(data.get(7))
+                                        .value(data.get(6))
                                         .build(),
                                 IssueRequestToGet.IssueMiniRequestToGet.CustomFields.builder()
-                                        .value(data.get(8))
+                                        .value(data.get(7))
                                         .build()
                         ))
                         .startDate(data.get(8))
                         .endDate(data.get(9))
+                        .number(Integer.parseInt(data.get(10)))
                         .build())
                 .build();
     }
