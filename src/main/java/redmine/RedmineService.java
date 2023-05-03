@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import static redmine.util.RequestValidatorUtil.validateOrderRequest;
 import static redmine.util.RequirementCheckerUtil.*;
@@ -30,7 +31,6 @@ import static redmine.util.StringHolderUtil.*;
 @NoArgsConstructor
 @Slf4j
 public class RedmineService {
-    //    private final WebClient client = WebClient.create(REDMINE_URL);
     private final WebClient client = WebClient
             .builder()
             .baseUrl(REDMINE_URL)
@@ -41,7 +41,7 @@ public class RedmineService {
             .wiretap("reactor.netty.http.client.HttpClient",
                     LogLevel.INFO, AdvancedByteBufFormat.TEXTUAL);
 
-    public void createIssue(final IssueRequest data) {
+    public void createIssue(final IssueRequest data) throws ExecutionException, InterruptedException {
         validateOrderRequest(data);
         validate(data);
 
@@ -53,7 +53,8 @@ public class RedmineService {
                 .body(Mono.just(data), IssueRequest.class)
                 .retrieve()
                 .bodyToMono(Issues.class)
-                .block();
+                .toFuture()
+                .get();
     }
 
     public void validate(final IssueRequest data) {
@@ -130,21 +131,20 @@ public class RedmineService {
                 .block();
     }
 
-    public void createSeveralIssues(String filePath) throws IOException {
-        List<IssueRequestToGet> receivedData = ParserCsv.parse(filePath);
+    public void createSeveralIssues(String filePath) throws IOException, ExecutionException, InterruptedException {
+        val receivedData = ParserCsv.parse(filePath);
         List<IssueRequest> sentData = new ArrayList<>();
-        for (IssueRequestToGet datum : receivedData) {
+        for (val datum : receivedData) {
             sentData.add(getIdByName(datum, getProjects(), getStatuses(), getTrackers(),
                     getUsers(), getPriorities()));
         }
-        //sentData.forEach(this::createIssue);
 
-        for (IssueRequest sentDatum : sentData) {
+        for (val sentDatum : sentData) {
             String nameOfIssue = sentDatum.getIssue().getSubject();
             sentDatum.getIssue().setSubject(nameOfIssue + "(1)");
             createIssue(sentDatum);
-            for (int i = 1; i < sentDatum.getIssue().getNumber(); i++) {
-                sentDatum.getIssue().setSubject(nameOfIssue + "(" + (i + 1) + ")");
+            for (int index = 1; index < sentDatum.getIssue().getNumber(); index++) {
+                sentDatum.getIssue().setSubject(nameOfIssue + "(" + (index + 1) + ")");
                 sentDatum.getIssue().setStartDate(editDate
                         (sentDatum.getIssue().getStartDate(),
                                 sentDatum.getIssue().getCustomList().get(1).getValue(),
@@ -241,4 +241,50 @@ public class RedmineService {
         dateEdited.append(calendar.get(Calendar.DAY_OF_MONTH));
         return dateEdited.toString();
     }
+
+    public String getListPriorities(){
+        List<String> prioritiesName = new ArrayList<>();
+        val prioritiesList = getPriorities().getPriorities();
+        for (val priority : prioritiesList) {
+            prioritiesName.add(priority.getName());
+        }
+        return prioritiesName.toString();
+    }
+
+    public String getListStatuses(){
+        val statusesList = getStatuses().getStatuses();
+        List<String> statusesName = new ArrayList<>();
+        for (val status : statusesList) {
+            statusesName.add(status.getName());
+        }
+        return statusesName.toString();
+    }
+    public String getListTrackers(){
+        val trackersList = getTrackers().getTrackers();
+        List<String> trackersName = new ArrayList<>();
+        for (val tracker : trackersList) {
+            trackersName.add(tracker.getName());
+        }
+        return trackersName.toString();
+    }
+    public String getListUsers(){
+        val usersList = getUsers().getUserList();
+        List<String> usersName = new ArrayList<>();
+        for(val user : usersList){
+            String name = user.getFirstName() +
+                    " " +
+                    user.getLastName();
+            usersName.add(name);
+        }
+        return usersName.toString();
+    }
+    public String getListProjects(){
+        val projectsList = getProjects().getProjectList();
+        List<String> projectsName = new ArrayList<>();
+        for(val project : projectsList){
+            projectsName.add(project.getName());
+        }
+        return projectsName.toString();
+    }
+
 }
